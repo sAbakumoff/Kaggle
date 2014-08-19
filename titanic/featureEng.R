@@ -32,7 +32,7 @@ full[is.na(full$Embarked),]$Embarked = embarked.most.frequent
 #Feature engineering step 3: extract the Title & Family Name
 name.info <- strsplit(full$Name, ',\\s|\\.\\s')
 full$FamilyName <- factor(sapply(name.info, function(x) x[1]))
-full$Title <- sapply(name.info, function(x) x[2])
+full$Title <- as.factor(sapply(name.info, function(x) x[2]))
 
 #Feature engineering step 4: Fill the missing ages
 for(title in levels(full$Title)){
@@ -67,9 +67,16 @@ isOdd <- function(x) x %in% c("1","3","5","7","9")
 
 
 #Step 8 : Side
-full$cabin.last.digit <- str_sub(full$Cabin, -1)
+full$cabin.last.digit <- substr(full$Cabin, nchar(full$Cabin), nchar(full$Cabin))
 full$Side <- "UNK"
 full$Side[which(isEven(full$cabin.last.digit))] <- "port"
 full$Side[which(isOdd(full$cabin.last.digit))] <- "starboard"
 full$Side <- as.factor(full$Side)
 full$cabin.last.digit <- NULL
+
+train_tidy <- full[!is.na(full$Survived),]
+test_tidy <- full[is.na(full$Survived),]
+test_tidy$Survived <- NULL
+
+write.csv(test_tidy, 'test_tidy.csv')
+write.csv(train_tidy, 'train_tidy.csv')
