@@ -1,5 +1,5 @@
-#setwd('f:/projects/kaggle/titanic/')
-setwd('~/Documents/Projects/Kaggle/titanic/')
+setwd('f:/projects/kaggle/titanic/')
+#setwd('~/Documents/Projects/Kaggle/titanic/')
 missing.types <- c("NA", "")
 column.types <- c('integer',   # PassengerId
                         'factor',    # Survived 
@@ -34,17 +34,25 @@ name.info <- strsplit(full$Name, ',\\s|\\.\\s')
 full$FamilyName <- factor(sapply(name.info, function(x) x[1]))
 full$Title <- as.factor(sapply(name.info, function(x) x[2]))
 
+#Feature engineering step 5 : merge the titles!
+full[full$Title %in% c('Capt', 'Don', 'Major', 'Sir', 'Rev', 'Dr', 'Col'), 'Title'] <- 'Sir'
+full[full$Title %in% c('Dona', 'Lady', 'Jonkheer'), 'Title'] <- 'Lady'
+full[full$Title %in% c('the Countess', 'Ms'), 'Title'] <- 'Mrs'
+full[full$Title %in% c('Mme', 'Mlle'), 'Title'] <- 'Miss'
+
+
 #Feature engineering step 4: Fill the missing ages
 for(title in levels(full$Title)){
   title.age.mean <- mean(full[full$Title == title,]$Age, na.rm = TRUE)
   full[full$Title == title & (is.na(full$Age) | full$Age == 0), 'Age'] = title.age.mean
 }
 
-#Feature engineering step 5 : merge the titles!
-full[full$Title %in% c('Capt', 'Don', 'Major', 'Sir', 'Rev', 'Dr', 'Col'), 'Title'] <- 'Sir'
-full[full$Title %in% c('Dona', 'Lady', 'Jonkheer'), 'Title'] <- 'Lady'
-full[full$Title %in% c('the Countess', 'Ms'), 'Title'] <- 'Mrs'
-full[full$Title %in% c('Mme', 'Mlle'), 'Title'] <- 'Mlle'
+#step 4.5 categorize the ages
+full$AgeRange <- as.character('Old')
+full[full$Age <= 15, 'AgeRange'] <- 'Child'
+full[full$Age > 15 & full$Age<=40, 'AgeRange'] <- 'Adult'
+full$AgeRange <- as.factor(full$AgeRange)
+
 
 #Step 6: "women and children first" protocol support
 full$Boat.dibs <- 'No'
@@ -57,26 +65,8 @@ full$FamilyRange <- as.character('alone')
 full[full$FamilySize > 0 & full$FamilySize < 3, 'FamilyRange'] <- 'small'
 full[full$FamilySize == 3, 'FamilyRange'] <- 'avg'
 full[full$FamilySize > 3, 'FamilyRange'] <- 'large'
-full$Fare.pp <- full$Fare/(full$FamilySize + 1)
+full$FamilyRange <- as.factor(full$FamilyRange)
 
-#step7 : Deck number
-full$Deck <- substring(full$Cabin, 1, 1)
-full$Deck[ which( is.na(full$Deck ))] <- "UNK"
-full$Deck <- as.factor(full$Deck)
-
-## test a character as an EVEN single digit
-isEven <- function(x) x %in% c("0","2","4","6","8") 
-## test a character as an ODD single digit
-isOdd <- function(x) x %in% c("1","3","5","7","9") 
-
-
-#Step 8 : Side
-full$cabin.last.digit <- substr(full$Cabin, nchar(full$Cabin), nchar(full$Cabin))
-full$Side <- "UNK"
-full$Side[which(isEven(full$cabin.last.digit))] <- "port"
-full$Side[which(isOdd(full$cabin.last.digit))] <- "starboard"
-full$Side <- as.factor(full$Side)
-full$cabin.last.digit <- NULL
 
 train_tidy <- full[!is.na(full$Survived),]
 test_tidy <- full[is.na(full$Survived),]
