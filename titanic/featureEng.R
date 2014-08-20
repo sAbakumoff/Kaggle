@@ -53,6 +53,10 @@ full$Boat.dibs <- as.factor(full$Boat.dibs)
 
 #step6 : family size
 full$FamilySize <- full$SibSp + full$Parch
+full$FamilyRange <- as.character('alone')
+full[full$FamilySize > 0 & full$FamilySize < 3, 'FamilyRange'] <- 'small'
+full[full$FamilySize == 3, 'FamilyRange'] <- 'avg'
+full[full$FamilySize > 3, 'FamilyRange'] <- 'large'
 full$Fare.pp <- full$Fare/(full$FamilySize + 1)
 
 #step7 : Deck number
