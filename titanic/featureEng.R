@@ -1,5 +1,5 @@
-setwd('f:/projects/kaggle/titanic/')
-#setwd('~/Documents/Projects/Kaggle/titanic/')
+#setwd('f:/projects/kaggle/titanic/')
+setwd('~/Documents/Projects/Kaggle/titanic/')
 missing.types <- c("NA", "")
 column.types <- c('integer',   # PassengerId
                         'factor',    # Survived 
@@ -21,7 +21,7 @@ full <- rbind(test, train)
 
 #Feature engineering step 1 : replace missing and zero-es Fare values.
 for(passenger.class in levels(full$Pclass)){
-  class.fare.mean <- mean(full[full$Pclass == passenger.class,]$Fare, na.rm = TRUE)
+  class.fare.mean <- median(full[full$Pclass == passenger.class,]$Fare, na.rm = TRUE)
   full[full$Pclass == passenger.class & (is.na(full$Fare) | full$Fare == 0), ]$Fare = class.fare.mean
 }
 
@@ -43,7 +43,7 @@ full[full$Title %in% c('Mme', 'Mlle'), 'Title'] <- 'Miss'
 
 #Feature engineering step 4: Fill the missing ages
 for(title in levels(full$Title)){
-  title.age.mean <- mean(full[full$Title == title,]$Age, na.rm = TRUE)
+  title.age.mean <- median(full[full$Title == title,]$Age, na.rm = TRUE)
   full[full$Title == title & (is.na(full$Age) | full$Age == 0), 'Age'] = title.age.mean
 }
 
@@ -66,6 +66,28 @@ full[full$FamilySize > 0 & full$FamilySize < 3, 'FamilyRange'] <- 'small'
 full[full$FamilySize == 3, 'FamilyRange'] <- 'avg'
 full[full$FamilySize > 3, 'FamilyRange'] <- 'large'
 full$FamilyRange <- as.factor(full$FamilyRange)
+
+full$Side <- NA
+isOdd<-function(i) substr(i, nchar(i), nchar(i)) %in% c('1','3', '5', '7', '9')
+isEven<-function(i) substr(i, nchar(i), nchar(i)) %in% c('0','2', '4', '6', '8')
+
+fillMissingValues <- function(columnToFill, groupColumn, ds){
+  for(group in levels(ds[, groupColumn])){
+    unknown.values.count <- nrow(ds[ds$Pclass == group & is.na(ds[, columnToFill]) , ])
+    known.values <- ds[ds$Pclass == group & !is.na(ds[, columnToFill]) , columnToFill]
+    known.values.distribution <- prop.table(table(known.values))
+    ds[ds[, groupColumn] == group & is.na(ds[, columnToFill]) , columnToFill] = sample(names(known.values.distribution), size=unknown.values.count, replace=TRUE, prob = known.values.distribution)    
+  }
+  return(ds)
+}
+full[!is.na(full$Cabin) & isOdd(full$Cabin), 'Side'] <- 'star'
+full[!is.na(full$Cabin) & isEven(full$Cabin), 'Side'] <- 'port'
+full <- fillMissingValues('Side', 'Pclass', full)
+
+full$Deck <- NA
+full[!is.na(full$Cabin), 'Deck']  <- substr(full[!is.na(full$Cabin), 'Cabin'] , 1, 1)
+full <- fillMissingValues('Deck', 'Pclass', full)
+
 
 
 train_tidy <- full[!is.na(full$Survived),]
