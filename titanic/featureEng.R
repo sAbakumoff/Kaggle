@@ -31,14 +31,15 @@ full[is.na(full$Embarked),]$Embarked = embarked.most.frequent
 
 #Feature engineering step 3: extract the Title & Family Name
 name.info <- strsplit(full$Name, ',\\s|\\.\\s')
-full$FamilyName <- factor(sapply(name.info, function(x) x[1]))
+full$FamilyName <- as.factor(sapply(name.info, function(x) x[1]))
 full$Title <- as.factor(sapply(name.info, function(x) x[2]))
 
 #Feature engineering step 5 : merge the titles!
 full[full$Title %in% c('Capt', 'Don', 'Major', 'Sir', 'Rev', 'Dr', 'Col'), 'Title'] <- 'Sir'
 full[full$Title %in% c('Dona', 'Lady', 'Jonkheer'), 'Title'] <- 'Lady'
 full[full$Title %in% c('the Countess', 'Ms'), 'Title'] <- 'Mrs'
-full[full$Title %in% c('Mme', 'Mlle'), 'Title'] <- 'Miss'
+full[full$Title == 'Mme', 'Title'] <- 'Mrs'
+full[full$Title == 'Mlle', 'Title'] <- 'Miss'
 
 
 #Feature engineering step 4: Fill the missing ages
