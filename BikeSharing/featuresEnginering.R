@@ -46,4 +46,4 @@ full.data <- rbind(train.data, test.data)
 #full.data$datetime <- as.POSIXct(full.data$datetime, format='%Y-%m-%d %H:%M:%S', tz='GMT')
 full.data <- adjust.columns(full.data)
 
-#idea : split temperature to groups using 10 day interval values for each hour! : levels(cut(march.data$temp, breaks=4))
+#idea : split temperature to groups using 10 day interval values for each hour! : levels(cut(march.data$temp, breaks=4)), extract breakpoints, assign each value to group!
