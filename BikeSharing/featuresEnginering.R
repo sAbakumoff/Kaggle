@@ -1,21 +1,49 @@
 setwd('~/Documents/Projects/Kaggle/BikeSharing/')
+
+adjust.columns <- function(data){
+  data$datetime <- strptime(data$datetime, format='%Y-%m-%d %H:%M:%S')
+  data$month <- as.numeric(format(data$datetime, '%m'))
+  data$weekday <- as.numeric(format(data$datetime, '%w'))
+  data$hour <- as.numeric(format(data$datetime, '%H'))
+  data$year <- as.numeric(format(data$datetime, '%y'))
+  return(data)
+}
+
 missing.types <- c("NA", "")
-column.types <- c('character',   # datetime
+
+process.dataset<-function(input.file, column.types, output.file){
+  data <- read.csv(input.file, na.strings=missing.types, colClasses=column.types)
+  data <- adjust.columns(data)
+  #write.csv(data, output.file, row.names=FALSE)
+  return(data)
+}
+
+
+test.column.types <- c('character',   # datetime
                   'factor',    # season 
                   'factor',    # holiday
-                  'factor', # workingday
+                  'factor',    # workingday
                   'factor',    # weather
                   'numeric',   # temp
                   'numeric',   # atemp
                   'numeric',   # humidity
-                  'numeric', # windspeed
-                  'numeric',   # casual
-                  'numeric', # registered
-                  'numeric'     # count
+                  'numeric'    # windspeed
 )
-train <- read.csv("train.csv", na.strings=missing.types, colClasses=column.types)
-train$datetime <- strptime(train$datetime, format='%Y-%m-%d %H:%M:%S')
-train$month <- format(train$datetime, '%m')
-train$weekday <- format(train$datetime, '%w')
-train$hour <- format(train$datetime, '%H')
-train$year <- format(train$datetime, '%y')
+train.column.types <- c(test.column.types,
+                        'numeric',   # casual
+                        'numeric',   # registered
+                        'numeric'   # count                        
+                        )
+
+train.data <- read.csv('train.csv', na.strings=missing.types, colClasses=train.column.types)
+test.data <- read.csv('test.csv', na.strings=missing.types, colClasses=test.column.types)
+
+test.data$casual <- NA
+test.data$registered <- NA
+test.data$count <- NA
+
+full.data <- rbind(train.data, test.data)
+#full.data$datetime <- as.POSIXct(full.data$datetime, format='%Y-%m-%d %H:%M:%S', tz='GMT')
+full.data <- adjust.columns(full.data)
+
+#idea : split temperature to groups using 10 day interval values for each hour! : levels(cut(march.data$temp, breaks=4))
