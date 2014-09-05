@@ -1,5 +1,5 @@
-#setwd('~/Documents/Projects/Kaggle/BikeSharing/')
-setwd('f:/Projects/Kaggle/BikeSharing/')
+setwd('~/Documents/Projects/Kaggle/BikeSharing/')
+#setwd('f:/Projects/Kaggle/BikeSharing/')
 adjust.columns <- function(data){
   data$datetime <- strptime(data$datetime, format='%Y-%m-%d %H:%M:%S')
   data$month <- as.numeric(format(data$datetime, '%m'))
@@ -46,27 +46,8 @@ full.data <- rbind(train.data, test.data)
 #full.data$datetime <- as.POSIXct(full.data$datetime, format='%Y-%m-%d %H:%M:%S', tz='GMT')
 full.data <- adjust.columns(full.data)
 
-#idea : split temperature to groups using 10 day interval values for each hour! : levels(cut(march.data$temp, breaks=4)), extract breakpoints, assign each value to group!
-temp.groups<-split(full.data$temp, list(full.data$year, full.data$month, full.data$hour))
-build.ranges <- function(values, breaks){
-  levels <- levels(cut(values,breaks=breaks))
-  return(
-    cbind(lower = as.numeric( sub("\\((.+),.*", "\\1", levels) ),
-          upper = as.numeric( sub("[^,]*,([^]]*)\\]", "\\1", levels) ),
-          range = c('low', 'ave', 'high', 'extra-high')
-          )    
-    )
-}
-temp.levels <- lapply(temp.groups, function(item) build.ranges(item, 4))
+full.data[full.data$temp < 15, 'temp.cat']<-'low'
+full.data[full.data$temp >= 15 & full.data$temp < 30, 'temp.cat']<-'normal'
+full.data[full.data$temp >= 30, 'temp.cat']<-'high'
+full.data$temp.cat<-as.factor(full.data$temp.cat)
 
-full.data[,'year.month.hour'] <- paste(full.data$year, '.', full.data$month, '.', full.data$hour, sep='')
-
-get.temp.range <- function(y.m.h, temp){
-  #print(temp)
-  ranges <- temp.levels[y.m.h][[1]]
-  #print(length(ranges))
-  print(ranges[temp >= ranges[,1] & temp < ranges[,2], 3])
-  #return(colnames(ranges[ranges[, 'low'] <= temp & ranges[, 'high'] > temp]))
-}
-
-tempo<-mapply(get.temp.range, full.data$year.month.hour, full.data$temp)
