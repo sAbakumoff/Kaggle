@@ -71,13 +71,17 @@ for(y in 11:12){
   for(m in 1:12){
     month.data <- subset(full.data, year==y & month==m)
     
-    month.casual <- append.stat.data(month.data, 'casual', 12, 1, function(x) paste('casual', 'in', 'minus', x,'hours', sep='.'))
+    month.casual <- append.stat.data(month.data, 'casual', 4, 1, function(x) paste('casual', 'in', 'minus', x,'hours', sep='.'))
+    month.casual <- append.stat.data(month.casual, 'casual', 6, 24, function(x) paste('casual', 'in', 'minus', x,'days', sep='.'))
+    month.casual <- append.stat.data(month.casual, 'casual', 3, 24*7, function(x) paste('casual', 'in', 'minus', x,'weeks', sep='.'))
     month.casual.train <- subset(month.casual, !is.na(casual))
     month.casual.test <- subset(month.casual, is.na(casual))
     casual.train <- rbind(casual.train, month.casual.train)
     casual.test <- rbind(casual.test, month.casual.test)
     
-    month.reg <- append.stat.data(month.data, 'registered', 12, 1, function(x) paste('registered', 'in', 'minus', x,'hours', sep='.'))
+    month.reg <- append.stat.data(month.data, 'registered', 4, 1, function(x) paste('registered', 'in', 'minus', x,'hours', sep='.'))
+    month.reg <- append.stat.data(month.reg, 'registered', 6, 24, function(x) paste('registered', 'in', 'minus', x,'days', sep='.'))
+    month.reg <- append.stat.data(month.reg, 'registered', 3, 24 * 7, function(x) paste('registered', 'in', 'minus', x,'weeks', sep='.'))
     month.reg.train <- subset(month.reg, !is.na(casual))
     month.reg.test <- subset(month.reg, is.na(casual))
     reg.train <- rbind(reg.train, month.reg.train)
