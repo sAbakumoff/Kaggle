@@ -1,13 +1,11 @@
-setwd('~/Documents/Projects/Kaggle/BikeSharing/')
-#setwd('f:/Projects/Kaggle/BikeSharing/')
+#setwd('~/Documents/Projects/Kaggle/BikeSharing/')
+setwd('f:/Projects/Kaggle/BikeSharing/')
 adjust.columns <- function(data){
-  datetime <- strptime(data$datetime, format='%Y-%m-%d %H:%M:%S')
-  #data$month <- as.numeric(format(data$datetime, '%m'))
-  #data$week.day <- as.numeric(format(data$datetime, '%w'))
-  #data$hour <- as.numeric(format(data$datetime, '%H'))
-  #data$year <- as.numeric(format(data$datetime, '%y'))
-  #data$month.day <- as.numeric(format(data$datetime, '%d'))
-  data$year.month.weekday.hour <- as.factor(format(datetime, '%y.%m.%w.%H'))
+  data$datetime <- strptime(data$datetime, format='%Y-%m-%d %H:%M:%S')
+  data$month <- as.numeric(format(data$datetime, '%m'))
+  data$weekday <- as.numeric(format(data$datetime, '%w'))
+  data$hour <- as.numeric(format(data$datetime, '%H'))
+  data$year <- as.numeric(format(data$datetime, '%y'))
   return(data)
 }
 
@@ -40,45 +38,51 @@ train.column.types <- c(test.column.types,
 train.data <- read.csv('train.csv', na.strings=missing.types, colClasses=train.column.types)
 test.data <- read.csv('test.csv', na.strings=missing.types, colClasses=test.column.types)
 
-train.data$count<-NULL
 test.data$casual <- NA
 test.data$registered <- NA
-#test.data$count <- NA
+test.data$count <- NA
 
 full.data <- rbind(train.data, test.data)
-#full.data$datetime <- as.POSIXct(full.data$datetime, format='%Y-%m-%d %H:%M:%S', tz='GMT')
-#full.data <- adjust.columns(full.data)
+full.data <- adjust.columns(full.data)
 
-full.data <- full.data[order(as.Date(full.data$datetime, format='%Y-%m-%d %H:%M:%S')), ]
-full.data$datetime <- strptime(full.data$datetime, format='%Y-%m-%d %H:%M:%S')
-full.data$year.month.weekday.hour <- as.factor(format(full.data$datetime, '%y.%m.%w.%H'))
-median.casual <- tapply(full.data$casual, year.month.weekday.hour, median, na.rm = TRUE)
-#full.data <- adjust.columns(full.data)
 
-f<-function(dt, hour){
-  month <- format(dt, '%m')
-  week.day <- format(dt, '%w')
-  hour <- as.numeric(format(dt, '%H')) - hour
-  year <- format(dt, '%y')
-  y.m.wd.h<-paste(year, month, week.day, hour, sep='.')
-  return(median.casual[y.m.wd.h])
+
+
+
+get.col.value <- function(weekday, hour, v, data, col.name){
+  if(!is.na(v)) return(v)
+  col.values <- data[data$weekday == weekday & data$hour==hour, col.name ]
+  return(median(col.values, na.rm=TRUE))
 }
 
-base.column <- 10
-column.after <- 11
-prev.column <- 10
-n.rows<-nrow(full.data)
-for(i in 1 : 12){
-  new.column <- paste('casual.in.-', i, '.hours', sep='')
-  
-  full.data[1:i, new.column] <- full.data[1:i, prev.column]
-  
-  full.data[(1+i) : n.rows, new.column] <- full.data[1: (n.rows-i), base.column]   
-  
-  na.subset <- full.data[is.na(full.data[, new.column]),]
-  
-  full.data[ is.na( full.data[, new.column] ), new.column ] <- mapply( function(x) f (x, i ),  full.data[ is.na( full.data[, new.column ] ), 'datetime' ] )
-  
-  
-  prev.column <- new.column
+append.stat.data <- function(data, base.column, new.cols.number, factor, get.new.col.name){
+  prev.column <- base.column
+  rows <- nrow(data)
+  for(i in 1:new.cols.number){
+    interval <- i * factor
+    new.col.name <- get.new.col.name(i)
+    data[(1+interval) : rows, new.col.name] <- data[1:(rows-interval), base.column]
+    data[1: interval, new.col.name] <- data[1:interval, prev.column]
+    prev.column <- new.col.name
+    data[, new.col.name] <- mapply(function(weekday, hour, value) get.col.value(weekday, hour, value, data, new.col.name), data$weekday, data$hour, data[, new.col.name])
+  }
+  return(data)
 }
+
+casual.train<-NULL
+casual.test<-NULL
+
+for(y in 11:12){
+  for(m in 1:12){
+    month.data <- subset(full.data, year==y & month==m)
+    month.casual <- append.stat.data(month.data, 'casual', 4, 1, function(x) paste('casual', 'in', 'minus', x,'hours', sep='.'))
+    month.casual.train <- subset(month.casual, !is.na(casual))
+    month.casual.test <- subset(month.casual, is.na(casual))
+    casual.train <- rbind(casual.train, month.casual.train)
+    casual.test <- rbind(casual.test, month.casual.test)
+  }
+}
+
+casual.test$casual<-NULL
+casual.test$count<-NULL
+casual.test$registered<-NULL
