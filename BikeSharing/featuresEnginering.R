@@ -1,5 +1,5 @@
-#setwd('~/Documents/Projects/Kaggle/BikeSharing/')
-setwd('f:/Projects/Kaggle/BikeSharing/')
+setwd('~/Documents/Projects/Kaggle/BikeSharing/')
+#setwd('f:/Projects/Kaggle/BikeSharing/')
 adjust.columns <- function(data){
   data$datetime <- strptime(data$datetime, format='%Y-%m-%d %H:%M:%S')
   data$month <- as.numeric(format(data$datetime, '%m'))
@@ -10,14 +10,6 @@ adjust.columns <- function(data){
 }
 
 missing.types <- c("NA", "")
-
-process.dataset<-function(input.file, column.types, output.file){
-  data <- read.csv(input.file, na.strings=missing.types, colClasses=column.types)
-  data <- adjust.columns(data)
-  #write.csv(data, output.file, row.names=FALSE)
-  return(data)
-}
-
 
 test.column.types <- c('character',   # datetime
                   'factor',    # season 
@@ -72,17 +64,41 @@ append.stat.data <- function(data, base.column, new.cols.number, factor, get.new
 casual.train<-NULL
 casual.test<-NULL
 
+reg.train<-NULL
+reg.test<-NULL
+
 for(y in 11:12){
   for(m in 1:12){
     month.data <- subset(full.data, year==y & month==m)
-    month.casual <- append.stat.data(month.data, 'casual', 4, 1, function(x) paste('casual', 'in', 'minus', x,'hours', sep='.'))
+    
+    month.casual <- append.stat.data(month.data, 'casual', 12, 1, function(x) paste('casual', 'in', 'minus', x,'hours', sep='.'))
     month.casual.train <- subset(month.casual, !is.na(casual))
     month.casual.test <- subset(month.casual, is.na(casual))
     casual.train <- rbind(casual.train, month.casual.train)
     casual.test <- rbind(casual.test, month.casual.test)
+    
+    month.reg <- append.stat.data(month.data, 'registered', 12, 1, function(x) paste('registered', 'in', 'minus', x,'hours', sep='.'))
+    month.reg.train <- subset(month.reg, !is.na(casual))
+    month.reg.test <- subset(month.reg, is.na(casual))
+    reg.train <- rbind(reg.train, month.reg.train)
+    reg.test <- rbind(reg.test, month.reg.test)
+    
   }
 }
 
+casual.train$registered<-NULL
 casual.test$casual<-NULL
 casual.test$count<-NULL
 casual.test$registered<-NULL
+
+reg.train$casual<-NULL
+reg.test$casual<-NULL
+reg.test$count<-NULL
+reg.test$registered<-NULL
+
+write.csv(casual.train, 'casual.train.csv', row.names=FALSE)
+write.csv(casual.test, 'casual.test.csv', row.names=FALSE)
+
+write.csv(reg.train, 'reg.train.csv', row.names=FALSE)
+write.csv(reg.test, 'reg.test.csv', row.names=FALSE)
+
