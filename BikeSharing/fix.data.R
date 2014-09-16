@@ -1,5 +1,5 @@
-#setwd('~/Documents/Projects/Kaggle/BikeSharing/')
-setwd('f:/Projects/Kaggle/BikeSharing/')
+setwd('~/Documents/Projects/Kaggle/BikeSharing/')
+#setwd('f:/Projects/Kaggle/BikeSharing/')
 adjust.columns <- function(data){
   data$datetime <- strptime(data$datetime, format='%Y-%m-%d %H:%M:%S')
   data$month <- as.numeric(format(data$datetime, '%m'))
@@ -59,6 +59,8 @@ full.data <- adjust.columns(full.data)
 
 weather.data <- read.csv('weather.data.csv', na.strings=missing.types, colClasses=weather.column.types)
 
+weather.data <- weather.data[!duplicated(weather.data[c('year', 'month', 'day', 'hour')]), ]
+
 full.data <- merge(full.data, weather.data, all.y = FALSE, all.x=FALSE, by=c('year', 'month', 'day', 'hour', 'weekday'))
 
 full.data <- full.data[order(full.data$date.time), ]
@@ -71,7 +73,9 @@ full.data$Wind.SpeedKm.h <- as.numeric(full.data$Wind.SpeedKm.h)
 
 fix.missing.value<-function(value, is.missing,  year, month, day, hour, data, col.name){
   if(!is.missing(value)) return(value)
-  return(data[data$year==year & data$month == month & data$day==day & data$hour==hour-1, col.name])
+  date <- as.POSIXct(ISOdate(year + 2000, month , day, hour , 0, 0, tz='EST')) - 3600
+  date <- as.POSIXlt(date)
+  return(data[data$year==date$year - 100 & data$month == date$mon + 1 & data$day==date$mday & data$hour==date$hour, col.name])
 }
 
 is.missing<-function(x){
@@ -80,12 +84,16 @@ is.missing<-function(x){
 
 full.data[is.na(full.data$Humidity), 'Humidity'] <- -9999
 
-for(col in c('Humidity', 'TemperatureC', 'Dew.PointC', 'Sea.Level.PressurehPa', 'VisibilityKm', 'Wind.SpeedKm.h', 'WindDirDegrees')){
-  full.data[, col]<-mapply(function(value, year, month, day, hour) fix.missing.value(value, is.missing, year, month, day, hour, full.data, col), 
-                                    full.data[, col], 
-                                    full.data$year, 
-                                    full.data$month, 
-                                    full.data$day, 
-                                    full.data$hour)
+for(col.name in c('VisibilityKm')){
+  missing.data <- full.data[is.missing(full.data[, col.name]), ]
+  full.data[is.missing(full.data[, col.name]), col.name] <- mapply(function(value, year, month, day, hour) 
+        fix.missing.value(value, is.missing,  year, month, day, hour, full.data, col.name),
+         missing.data[, col.name],
+         missing.data$year,
+         missing.data$month,
+         missing.data$day,
+         missing.data$hour
+         )
 }
+
 
