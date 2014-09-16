@@ -1,5 +1,5 @@
-setwd('~/Documents/Projects/Kaggle/BikeSharing/')
-#setwd('f:/Projects/Kaggle/BikeSharing/')
+#setwd('~/Documents/Projects/Kaggle/BikeSharing/')
+setwd('f:/Projects/Kaggle/BikeSharing/')
 adjust.columns <- function(data){
   data$datetime <- strptime(data$datetime, format='%Y-%m-%d %H:%M:%S')
   data$month <- as.numeric(format(data$datetime, '%m'))
@@ -69,4 +69,23 @@ full.data$datetime<-full.data$date.time<-full.data$weather<-full.data$temp<-full
 full.data[full.data$Wind.SpeedKm.h == 'Calm', 'Wind.SpeedKm.h'] <- '0'
 full.data$Wind.SpeedKm.h <- as.numeric(full.data$Wind.SpeedKm.h)
 
+fix.missing.value<-function(value, is.missing,  year, month, day, hour, data, col.name){
+  if(!is.missing(value)) return(value)
+  return(data[data$year==year & data$month == month & data$day==day & data$hour==hour-1, col.name])
+}
+
+is.missing<-function(x){
+  return(x==-9999)
+}
+
+full.data[is.na(full.data$Humidity), 'Humidity'] <- -9999
+
+for(col in c('Humidity', 'TemperatureC', 'Dew.PointC', 'Sea.Level.PressurehPa', 'VisibilityKm', 'Wind.SpeedKm.h', 'WindDirDegrees')){
+  full.data[, col]<-mapply(function(value, year, month, day, hour) fix.missing.value(value, is.missing, year, month, day, hour, full.data, col), 
+                                    full.data[, col], 
+                                    full.data$year, 
+                                    full.data$month, 
+                                    full.data$day, 
+                                    full.data$hour)
+}
 
