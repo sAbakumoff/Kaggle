@@ -73,9 +73,15 @@ full.data$Wind.SpeedKm.h <- as.numeric(full.data$Wind.SpeedKm.h)
 
 fix.missing.value<-function(value, is.missing,  year, month, day, hour, data, col.name){
   if(!is.missing(value)) return(value)
-  date <- as.POSIXct(ISOdate(year + 2000, month , day, hour , 0, 0, tz='EST')) - 3600
-  date <- as.POSIXlt(date)
-  return(data[data$year==date$year - 100 & data$month == date$mon + 1 & data$day==date$mday & data$hour==date$hour, col.name])
+  date.sec <- as.POSIXct(ISOdate(year + 2000, month , day, hour , 0, 0, tz='EST')) - 3600
+  date <- as.POSIXlt(date.sec)
+  new.value <- data[data$year==date$year - 100 & data$month == date$mon + 1 & data$day==date$mday & data$hour==date$hour, col.name]
+  if(length(new.value) != 1){
+    date.sec <- date.sec - 3600
+    date <- as.POSIXlt(date.sec)
+    new.value <- data[data$year==date$year - 100 & data$month == date$mon + 1 & data$day==date$mday & data$hour==date$hour, col.name]
+  }
+  return(new.value)
 }
 
 is.missing<-function(x){
@@ -84,7 +90,8 @@ is.missing<-function(x){
 
 full.data[is.na(full.data$Humidity), 'Humidity'] <- -9999
 
-for(col.name in c('VisibilityKm')){
+
+for(col.name in c('TemperatureC', 'Dew.PointC', 'Humidity', 'Sea.Level.PressurehPa', 'VisibilityKm', 'Wind.SpeedKm.h' )){
   missing.data <- full.data[is.missing(full.data[, col.name]), ]
   full.data[is.missing(full.data[, col.name]), col.name] <- mapply(function(value, year, month, day, hour) 
         fix.missing.value(value, is.missing,  year, month, day, hour, full.data, col.name),
